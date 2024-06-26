@@ -44,7 +44,7 @@ UMRCompiler >> compile: anRGMethod [
 
 	compilation := TRCompilation forTarget: target.
 	method := anRGMethod.
-	ast := method ast.
+	ast := method parseTree.
 	ir := UMRMethodBuilder forCompilation: compilation.
 	ast acceptVisitor: self.
 	compilation optimize.

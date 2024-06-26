@@ -18,7 +18,7 @@ UMRInitializer >> parseTree [
 	statements isSequence ifFalse:[
 		statements := RBSequenceNode statements: { statements }.
 	].
-	^ (RBMethodNode selector: #initialize body: statements) addReturn
+	^ (RBMethodNode selector: #initialize body: statements) addReturn; yourself.
 ]
 
 { #category : #accessing }

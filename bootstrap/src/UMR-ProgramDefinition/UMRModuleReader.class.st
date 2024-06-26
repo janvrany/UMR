@@ -70,8 +70,8 @@ UMRModuleReader >> process_Program_named: name initializer: initializerNode [
 	| initializer |
 
 	initializer := UMRInitializer new sourceCode:
-					(chunk copyFrom: initializerNode body sourceInterval start
-								 to: initializerNode body sourceInterval stop).
+					(chunk copyFrom: initializerNode body sourceInterval first
+								 to: initializerNode body sourceInterval last).
 
 	module := UMRProgram named: name parent: environment.
 	module initializer: initializer.
@@ -142,11 +142,11 @@ UMRModuleReader >> readNextChunk [
 			moduleType := module class name copyFrom: 4 to: module class name size.
 		].
 
-		handler := ('process_' , moduleType , '_' , chunkExpr selector) asSymbolIfInterned.
+		handler := Symbol findInterned: ('process_' , moduleType , '_' , chunkExpr selector).
 		(handler notNil and: [ self respondsTo: handler ]) ifTrue: [ 
 			| args |
 			args := chunkExpr arguments collect: [ :e|e value ].
-			self perform: handler withArguments: args.
+			self perform: handler withArguments: args asArray.
 			^ true
 		].
 		self error: 'Unsupported chunk type'.
