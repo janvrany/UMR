@@ -1,0 +1,36 @@
+# Local customizations
+GNUmakefile.local
+
+# Pharo 
+bootstrap/pharo/pharo*
+bootstrap/pharo/Pharo*
+bootstrap/pharo/icon-packs
+bootstrap/pharo/progress.log
+bootstrap/pharo/*.image
+bootstrap/pharo/*.changes
+bootstrap/pharo/*Test.xml
+bootstrap/pharo/bin
+bootstrap/pharo/lib
+bootstrap/pharo/Pharo*.zip
+bootstrap/pharo/*.o
+bootstrap/pharo/*.s
+
+# Smalltalk/X
+bootstrap/stx/stx
+bootstrap/stx/package-cache
+bootstrap/stx/*Test.xml
+bootstrap/stx/*.o
+bootstrap/stx/*.s
+
+# External dependencies
+3rdparty
+
+# build by-products
+build
+
+# git merge by-products
+*.orig
+
+# Gem5 by-products
+bootstrap/stx/m5out
+bootstrap/pharo/m5out
