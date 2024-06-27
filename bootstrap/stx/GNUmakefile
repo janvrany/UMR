@@ -19,8 +19,13 @@ endif
 
 ifndef ARCHC_DIR
 ARCHC_DIR    := ../3rdparty/ArchC
-ARCHC_URL    ?= https://github.com/shingarov/Pharo-ArchC
-ARCHC_BRANCH ?= pure-z3
+#ARCHC_URL    ?= https://github.com/shingarov/Pharo-ArchC
+#ARCHC_BRANCH ?= pure-z3
+#
+# temporarily use custom branch
+#
+ARCHC_URL    ?= https://github.com/janvrany/Pharo-ArchC
+ARCHC_BRANCH ?= pr/add-relocations
 $(eval $(call git-clone-local,ARCHC_DIR,$(ARCHC_URL),$(ARCHC_BRANCH)))
 endif
 
@@ -41,7 +46,11 @@ endif
 ifndef TINYROSSA_DIR
 TINYROSSA_DIR  = ../../3rdparty/Tinyrossa
 TINYROSSA_URL ?= https://github.com/janvrany/Tinyrossa.git
-TINYROSSA_BRANCH ?= master
+#TINYROSSA_BRANCH ?= master
+#
+# temporarily use custom branch
+#
+TINYROSSA_BRANCH ?= pr/generate-position-independent-code
 $(eval $(call git-clone-local,TINYROSSA_DIR,$(TINYROSSA_URL),$(TINYROSSA_BRANCH)))
 endif
 
