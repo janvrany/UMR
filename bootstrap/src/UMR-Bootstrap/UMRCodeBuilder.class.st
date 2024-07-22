@@ -15,7 +15,20 @@ UMRCodeBuilder >> build [
 
 { #category : #compiling }
 UMRCodeBuilder >> compile [
-	bootstrap program environment packagesDo: [ :module | self compileModule: module ]
+	| queue processed |
+
+	queue := OrderedCollection with: bootstrap program.
+	processed := Set new.
+
+	[ queue notEmpty ] whileTrue: [ 
+		| module |
+
+		module := queue removeFirst.
+		self compileModule: module.
+		processed add: module.
+
+		queue addAll: (module subsystems value reject: [:each | processed includes: each ])
+	].
 ]
 
 { #category : #compiling }
@@ -40,7 +53,7 @@ UMRCodeBuilder >> compileMethod: anRGMethod [
 { #category : #compiling }
 UMRCodeBuilder >> compileModule: anUMRModule [
 	self compileInitializer: anUMRModule initializer.
-	anUMRModule definedClasses do: [:classDef | 
+	anUMRModule ask allClasses do: [:classDef | 
 		self compileClass: classDef
 	].
 ]

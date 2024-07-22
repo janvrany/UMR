@@ -1,6 +1,13 @@
+"
+Cluster is just a bunch of packages, all in the same environment
+
+"
 Class {
 	#name : #UMRCluster,
-	#superclass : #UMRModule,
+	#superclass : #RGPackage,
+	#instVars : [
+		'packages'
+	],
 	#category : #'UMR-ProgramDefinition'
 }
 

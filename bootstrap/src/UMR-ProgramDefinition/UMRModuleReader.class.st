@@ -2,22 +2,24 @@ Class {
 	#name : #UMRModuleReader,
 	#superclass : #Object,
 	#instVars : [
-		'environment',
 		'stream',
 		'chunk',
 		'chunkExpr',
 		'module',
-		'annotations',
-		'program'
+		'artefact',
+		'annotations'
 	],
 	#classVars : [
-		'Handlers'
+		'LayoutMap'
 	],
 	#category : #'UMR-ProgramDefinition-Reader'
 }
 
 { #category : #initialization }
 UMRModuleReader class >> initialize [
+	LayoutMap := Dictionary newFromPairs: {
+		#none . RGFixedLayout.
+	}
 ]
 
 { #category : #'instance creation' }
@@ -29,27 +31,120 @@ UMRModuleReader class >> new [
 
 { #category : #utilities }
 UMRModuleReader class >> readFrom: aStream [
-	^ self new stream: aStream; read.
+	^ self new 
+		stream: aStream; 
+		read.
+]
+
+{ #category : #utilities }
+UMRModuleReader class >> readFrom: aStream into: anUMRModule [
+	^ self new 
+		stream: aStream; 
+		module: anUMRModule;
+		read.
+]
+
+{ #category : #accessing }
+UMRModuleReader >> module [
+	^ module
+]
+
+{ #category : #accessing }
+UMRModuleReader >> module: anUMRModule [
+	module := anUMRModule.
+]
+
+{ #category : #processing }
+UMRModuleReader >> processAnnotation [
+	"Ignored for now"
+
+	^ true
+]
+
+{ #category : #processing }
+UMRModuleReader >> processClassDefinition [
+	| params superclass class meta |
+
+	params := SmallDictionary new.
+	chunkExpr selector keywords with: chunkExpr arguments do: [:param :valueNode | 
+		params at: param put: valueNode value
+	].
+	superclass := (params at: #superclass:) = 'nil'
+					ifTrue:[ nil ]
+					ifFalse:[ module ensureClassNamed: (params at: #superclass:) ].
+
+	"First, create the class itself."
+	class := module ensureClassNamed: (params at:#named:) asSymbol.
+	class
+		superclass: superclass;
+		layout: ((LayoutMap at: (params at: #indexedInstanceVariables:)) parent: class);
+		instanceVariables: ((params at: #instanceVariableNames:) substrings:' ') asArray;
+		package: artefact.
+
+	"Now, create the metaclass"
+	meta := module ensureClassNamed: (class name , ' class') asSymbol.
+	meta 
+		superclass: (superclass isNil ifTrue:[nil] ifFalse:[superclass metaclass]);
+		layout: ((LayoutMap at: #none) parent: class);
+		instanceVariables: ((params at: #classInstanceVariableNames:) substrings:' ') asArray.
+
+	"If this is root of the class hierarchy, make sure it has the structure required
+	 by runtime."
+	superclass isNil ifTrue: [ 
+		self assert: (meta instVarNames size >= 4).
+		self assert: (meta instVarNames at: 1) = 'structure'.
+		self assert: (meta instVarNames at: 2) = 'instanceMD'.
+		self assert: (meta instVarNames at: 3) = 'instVarCount'.
+		self assert: (meta instVarNames at: 4) = 'superclass'.
+	].
+
+	"Also, if it is a root class, make the metaclass also a class of metaclass"
+	superclass isNil ifTrue: [ 
+		meta metaclass: meta.
+	].
+
+	^ true
+]
+
+{ #category : #processing }
+UMRModuleReader >> processMethodDefinition: classMethod [
+	| source class method |
+
+	stream skipSeparators.
+	source := stream nextChunk.
+
+	class := module ensureClassNamed: chunkExpr receiver name.
+	classMethod ifTrue: [ 
+		class := class metaclass.
+	].
+
+	method := RGMethod named: (RBParser parseMethodPattern: source) parent: class.
+	method package: artefact.
+
+	class addLocalMethod: method.
+
+	^ true
 ]
 
 { #category : #processing }
 UMRModuleReader >> process_Cluster_addPackageNamed: packageName repositoryName: ignored [
-	| package |
-
-	package := UMRModuleLoader new loadPackage: packageName.
-	self notYetImplemented.
+	UMRModuleLoader new loadPackage: packageName into: module.
 ]
 
 { #category : #processing }
 UMRModuleReader >> process_Cluster_named: name [
-	module := UMRCluster named: name parent: environment.
-	environment addPackage: module.
+	| cluster |
+
+	cluster := artefact := UMRCluster named: name parent: module.
+	module addPackage: cluster.
 ]
 
 { #category : #processing }
 UMRModuleReader >> process_Package_named: name [
-	module := UMRPackage named: name parent: environment.
-	environment addPackage: module.
+	| package |
+
+	package := artefact := RGPackage named: name parent: module.
+	module addPackage: package.
 ]
 
 { #category : #processing }
@@ -57,12 +152,18 @@ UMRModuleReader >> process_Program_addSubsystemNamed: subsystemName repositoryNa
 	| subsystem |
 
 	subsystem := UMRModuleLoader new loadSubsystem: subsystemName.
-	self notYetImplemented.
+	module addSubsystem: subsystem.
 ]
 
 { #category : #processing }
 UMRModuleReader >> process_Program_importClass: exportedName from: subsystemName as: localName [
-	self notYetImplemented
+	| subsystem exportedClass import |
+
+	subsystem := artefact lookupSubsystem: subsystemName.
+	exportedClass := subsystem lookupClass: exportedName.
+
+	import := module ensureImportNamed: localName.
+	import behavior: exportedClass.
 ]
 
 { #category : #processing }
@@ -73,42 +174,39 @@ UMRModuleReader >> process_Program_named: name initializer: initializerNode [
 					(chunk copyFrom: initializerNode body sourceInterval first
 								 to: initializerNode body sourceInterval last).
 
-	module := UMRProgram named: name parent: environment.
+	module := artefact := UMRProgram named: name.
 	module initializer: initializer.
-
-	environment addPackage: module.
 ]
 
 { #category : #processing }
 UMRModuleReader >> process_Subsystem_named: name initializer: initializerNode [
-	| initializer |
+	| initializerSource  initializer |
 
-	initializer := UMRInitializer new sourceCode:
-					(chunk copyFrom: initializerNode body sourceInterval start
-								 to: initializerNode body sourceInterval stop).
+	initializerNode body sourceInterval notEmpty ifTrue:[
+		initializerSource := (chunk copyFrom: initializerNode body sourceInterval first
+										  to: initializerNode body sourceInterval last).
+	] ifFalse: [
+		initializerSource := ''.
+	].
 
-	module := UMRSubsystem named: name parent: environment.
+	initializer := UMRInitializer new sourceCode: initializerSource.
+
+	module := artefact := UMRSubsystem named: name.
 	module initializer: initializer.
-
-	environment addPackage: module.
 ]
 
 { #category : #processing }
 UMRModuleReader >> process_Subsystem_rootClusterNamed:clusterName repositoryName: ignored [
-	| cluster |
-
-	cluster := UMRModuleLoader new loadCluster: clusterName.
-	self notYetImplemented
+	UMRModuleLoader new loadCluster: clusterName into: module.
 ]
 
 { #category : #reading }
 UMRModuleReader >> read [
-	environment := UMREnvironment new.
-	module := nil.
+	artefact := nil.
 
 	[ self readNextChunk ] whileTrue.
 
-	^ module
+	^ module clean
 ]
 
 { #category : #'reading-private' }
@@ -122,27 +220,34 @@ UMRModuleReader >> readNextChunk [
 	chunkExpr := RBParser parseExpression: chunk.
 
 	(chunkExpr isMessage and: [ chunkExpr receiver isVariable ]) ifTrue: [
-		| handler moduleType |
+		| handler artefactType |
 
 		chunkExpr selector = #method ifTrue: [ 
-			^ self notYetImplemented
+			^ self processMethodDefinition: false.
 		].
 
 		chunkExpr selector = #classMethod ifTrue: [ 
-			^ self notYetImplemented
+			^ self processMethodDefinition: true
 		].
 
 		chunkExpr selector = #named:superclass:indexedInstanceVariables:instanceVariableNames:classVariableNames:sharedPools:classInstanceVariableNames: ifTrue: [ 
-			^ self notYetImplemented
+			self assert: chunkExpr receiver name = 'Class'.
+			^ self processClassDefinition
 		].
 
-		module isNil ifTrue: [ 
-			moduleType := chunkExpr receiver name
-		] ifFalse: [ 
-			moduleType := module class name copyFrom: 4 to: module class name size.
+		chunkExpr selector = #key:value: ifTrue: [ 
+			self assert: chunkExpr receiver name = 'Annotation'.
+			^ self processAnnotation.
 		].
 
-		handler := Symbol findInterned: ('process_' , moduleType , '_' , chunkExpr selector).
+		artefact isNil ifTrue: [ 
+			artefactType := chunkExpr receiver name
+		] ifFalse: [
+			self assert: chunkExpr receiver name = artefact name.
+			artefactType := artefact class name copyFrom: 4 to: artefact class name size.
+		].
+
+		handler := Symbol findInterned: ('process_' , artefactType , '_' , chunkExpr selector).
 		(handler notNil and: [ self respondsTo: handler ]) ifTrue: [ 
 			| args |
 			args := chunkExpr arguments collect: [ :e|e value ].

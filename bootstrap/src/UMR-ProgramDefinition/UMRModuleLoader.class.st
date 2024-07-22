@@ -22,25 +22,23 @@ UMRModuleLoader >> initialize [
 ]
 
 { #category : #loading }
-UMRModuleLoader >> loadCluster: name [
-	| file module |
+UMRModuleLoader >> loadCluster: name into: module [
+	| file |
 
 	file := self searchPathFor: name , '.clt'.
-	file readingFileDo:[ :s |
-		module := UMRModuleReader readFrom: file readStream.
+	file readStreamDo: [ :s |
+		UMRModuleReader readFrom: file readStream into: module
 	].
-	^ module
 ]
 
 { #category : #loading }
-UMRModuleLoader >> loadPackage: name [
-	| file module |
+UMRModuleLoader >> loadPackage: name into: module [
+	| file |
 
 	file := self searchPathFor: name , '.pkg'.
-	file readingFileDo:[ :s |
-		module := UMRModuleReader readFrom: file readStream.
+	file readStreamDo: [ :s |
+		UMRModuleReader readFrom: file readStream into: module
 	].
-	^ module
 ]
 
 { #category : #loading }
@@ -48,7 +46,7 @@ UMRModuleLoader >> loadProgram: name [
 	| file module |
 
 	file := self searchPathFor: name , '.prg'.
-	file readingFileDo:[ :s |
+	file readStreamDo: [ :s |
 		module := UMRModuleReader readFrom: file readStream.
 	].
 	^ module
@@ -59,7 +57,7 @@ UMRModuleLoader >> loadSubsystem: name [
 	| file module |
 
 	file := self searchPathFor: name , '.sbs'.
-	file readingFileDo:[ :s |
+	file readStreamDo: [ :s |
 		module := UMRModuleReader readFrom: file readStream.
 	].
 	^ module
@@ -78,7 +76,7 @@ UMRModuleLoader >> path: aCollection [
 { #category : #searching }
 UMRModuleLoader >> searchPathFor: name [
 	path do: [:element |
-		element directoriesDo: [ :dir | 
+		element directories do: [ :dir | 
 			| file |
 
 			file := dir / name.

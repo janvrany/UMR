@@ -10,6 +10,13 @@ UMRInitializer >> initialize [
 	name := '<minit>'
 ]
 
+{ #category : #'queries - class' }
+UMRInitializer >> methodClass [
+	^RGClass unresolved 
+		parent: self environment;
+		yourself
+]
+
 { #category : #accessing }
 UMRInitializer >> parseTree [
 	| statements |

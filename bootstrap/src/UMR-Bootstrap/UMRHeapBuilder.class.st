@@ -22,7 +22,7 @@ UMRHeapBuilder >> build [
 UMRHeapBuilder >> findRuntimeClasses [
 	| rtPackage |
 
-	rtPackage := UMRPackage named: '<runtime objects>' parent: environment.
+	rtPackage := RGPackage named: '<runtime objects>' parent: environment.
 	rtNilDef := RGClass named: '<nil>' parent: environment.
 	rtNilDef
 		superclass: nil;
