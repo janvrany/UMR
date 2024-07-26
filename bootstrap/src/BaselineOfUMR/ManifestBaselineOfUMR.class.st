@@ -8,6 +8,7 @@ Class {
 ManifestBaselineOfUMR class >> includedInPreRequisites [
 	^ #(
 		'BaselineOfTinyrossa'
+		'LightOpal'
 		'UMR-ProgramDefinition'
 		'UMR-Bootstrap'
 		'UMR-Bootstrap-Tests'

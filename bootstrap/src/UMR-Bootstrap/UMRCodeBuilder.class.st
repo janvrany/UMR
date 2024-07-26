@@ -45,7 +45,7 @@ UMRCodeBuilder >> compileInitializer: anUMRInitializer [
 UMRCodeBuilder >> compileMethod: anRGMethod [ 
 	| compiler  object |
 
-	compiler := UMRCompiler forTarget: bootstrap target.
+	compiler := UMRCompilerDriver forTarget: bootstrap target.
 	object := compiler compile: anRGMethod.
 	objects add: object
 ]
