@@ -1,6 +1,14 @@
 Extension { #name : #RBVariableNode }
 
 { #category : #'*LightOpal-Semantics' }
+RBVariableNode >> adaptToSemanticNode [
+	self assert: self binding notNil.
+	self changeClassTo: self binding semanticNodeClass
+
+	"Created: / 26-07-2024 / 11:53:26 / Jan Vrany <jan.vrany@labware.com>"
+]
+
+{ #category : #'*LightOpal-Semantics' }
 RBVariableNode >> binding [
 	^self propertyAt: #binding ifAbsent: [nil].
 
