@@ -25,7 +25,7 @@ ARCHC_DIR    := ../../3rdparty/ArchC
 # temporarily use custom branch
 #
 ARCHC_URL    ?= https://github.com/janvrany/Pharo-ArchC
-ARCHC_BRANCH ?= pr/add-relocations
+ARCHC_BRANCH ?= jv/devel
 $(eval $(call git-clone-local,ARCHC_DIR,$(ARCHC_URL),$(ARCHC_BRANCH)))
 endif
 
@@ -64,7 +64,7 @@ TINYROSSA_URL ?= https://github.com/janvrany/Tinyrossa.git
 #
 # temporarily use custom branch
 #
-TINYROSSA_BRANCH ?= pr/generate-position-independent-code
+TINYROSSA_BRANCH ?= devel
 $(eval $(call git-clone-local,TINYROSSA_DIR,$(TINYROSSA_URL),$(TINYROSSA_BRANCH)))
 endif
 
