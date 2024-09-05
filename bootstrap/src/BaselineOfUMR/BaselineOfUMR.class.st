@@ -14,6 +14,10 @@ BaselineOfUMR >> baseline: spec [
                                 spec repository: 'github://janvrany/Tinyrossa'
                         ].
 
+                        spec baseline: 'LibCompat' with: [
+                                spec repository: 'github://janvrany/pharo-hacks'.
+                        ].
+
                         spec
                                 package: #'UMR-ProgramDefinition';
                                 package: #'UMR-Bootstrap';
