@@ -17,6 +17,7 @@ BaselineOfUMR >> baseline: spec [
                         spec
                                 package: #'UMR-ProgramDefinition';
                                 package: #'UMR-Bootstrap';
+                                package: #'UMR-Runtime';
                                 package: #'UMR-Bootstrap-Tests';
                                 yourself.
                 ]

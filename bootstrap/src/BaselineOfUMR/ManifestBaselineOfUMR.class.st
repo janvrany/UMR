@@ -11,6 +11,7 @@ ManifestBaselineOfUMR class >> includedInPreRequisites [
 		'LightOpal'
 		'UMR-ProgramDefinition'
 		'UMR-Bootstrap'
+		'UMR-Runtime'
 		'UMR-Bootstrap-Tests'
 	)
 ]

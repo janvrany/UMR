@@ -11,7 +11,7 @@ Class {
 { #category : #running }
 UMRBoostrapTests >> setUp [
 	target := TRRV64GLinux default.
-	shell := TRCompilationTestShell forTarget: target.
+	shell := UMRShell forTarget: target.
 ]
 
 { #category : #running }
@@ -32,8 +32,13 @@ UMRBoostrapTests >> test01_meaningOfWorld [
 
 	bootstrap bootstrap.
 	bootstrap writeCodeTo: shell nzone.
+	bootstrap writeHeapTo: shell nzone.
 
-	exit := shell debugger send: 'c' andWaitFor: GDBThreadGroupExitedEvent.
+	shell entry: (shell nzone exports at: (TRFunctionSymbol name: 'main' type: (TRDataType named: 'Int32') linkage:nil)).
+	"
+	shell debugger cli
+	"
+	exit := shell debugger send: 'c' andWaitFor: GDBThreadGroupExitedEvent , GDBStoppedEvent.
 
 	self assert: exit exitCode equals: (42 << 1) | 1
 ]
