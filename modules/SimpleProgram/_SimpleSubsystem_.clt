@@ -1,0 +1,4 @@
+Cluster named: '_SimpleSubsystem_' !
+
+_SimpleSubsystem_
+	addPackageNamed: 'SimplePackage' repositoryName: 'SimpleProgram' !

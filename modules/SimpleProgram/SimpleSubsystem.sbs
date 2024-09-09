@@ -1,0 +1,6 @@
+Subsystem
+	named: 'SimpleSubsystem'
+	initializer: [] !
+
+SimpleSubsystem
+	rootClusterNamed: '_SimpleSubsystem_' repositoryName: 'SimpleProgram' !

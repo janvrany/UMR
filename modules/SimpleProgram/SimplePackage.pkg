@@ -1,0 +1,35 @@
+Package named: 'SimplePackage' !
+
+Class named: 'Object'
+	superclass: 'nil'
+	indexedInstanceVariables: #'none'
+	instanceVariableNames: ''
+	classVariableNames: ''
+	sharedPools: ''
+	classInstanceVariableNames: 'structure instanceMD instVarCount superclass' !
+
+Object classMethod !
+new
+
+	^self basicNew initialize !
+
+Annotation key: 'protocol' value: 'instance creation' !
+
+Object classMethod !
+basicNew
+
+	<primitive: 'primNewObject'> !
+
+Annotation key: 'protocol' value: 'instance creation' !
+
+Object method !
+initialize !
+
+Annotation key: 'protocol' value: 'initializing' !
+
+Object method !
+saySomething
+
+	<primitive: 'primSaySomething'> !
+
+Annotation key: 'protocol' value: 'speaking' !
