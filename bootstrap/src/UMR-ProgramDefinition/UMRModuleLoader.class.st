@@ -18,31 +18,18 @@ UMRModuleLoader class >> new [
 UMRModuleLoader >> initialize [
 	"Invoked when a new instance is created."
 
+	| packageDir modulesDir |
+
 	path := OrderedCollection new: 1.
-	Smalltalk isSmalltalkX ifTrue:[
-		| packageDir modulesDir |
-
-		packageDir := Smalltalk getPackageDirectoryForPackage: self class package.
-		(packageDir notNil and: [packageDir exists]) ifTrue:[
-			modulesDir := packageDir / '..' / '..' / '..' / 'modules'.
-			modulesDir isDirectory ifTrue:[ 
-				path add: modulesDir.
-			].
-		].
-	].
-	Smalltalk isPharo ifTrue:[
-		| slash package repo modulesDir |
-
-		slash := #DiskStore asClass activeClass delimiter.
-		package := self package name.
-		repo := #IceRepository asClass registry
-						detect:[ :each | each loadedPackages contains: [:icep | icep name = package ] ]
-						ifNone:[ ^nil ].
-		modulesDir := repo location / 'modules'.
+	packageDir := Smalltalk getPackageDirectoryForPackage: self class package.
+	(packageDir notNil and: [packageDir exists]) ifTrue:[
+		modulesDir := packageDir / '..' / '..' / '..' / 'modules'.
 		modulesDir isDirectory ifTrue:[ 
-			path add: modulesDir.  
+			path add: modulesDir.
 		].
 	].
+
+
 ]
 
 { #category : #loading }

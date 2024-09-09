@@ -28,6 +28,12 @@ UMRInitializer >> parseTree [
 	^ (RBMethodNode selector: #initialize body: statements) addReturn; yourself.
 ]
 
+{ #category : #printing }
+UMRInitializer >> printOn: aStream [
+	aStream nextPutAll: 'minit'.
+	aStream nextPutAll: self parent name.
+]
+
 { #category : #accessing }
 UMRInitializer >> sourceCode [
 	^ sourceCode

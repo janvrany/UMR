@@ -4,6 +4,7 @@ Class {
 	#instVars : [
 		'stream',
 		'chunk',
+		'chunkPos',
 		'chunkExpr',
 		'module',
 		'artefact',
@@ -52,6 +53,56 @@ UMRModuleReader >> module [
 { #category : #accessing }
 UMRModuleReader >> module: anUMRModule [
 	module := anUMRModule.
+]
+
+{ #category : #processing }
+UMRModuleReader >> process1 [
+	"Read and process next chunk from input stream. Return true,
+	 if chunk was read processed, false otherwise."
+
+	self readNextChunk ifFalse: [ ^ false ].
+
+	chunkExpr := RBParser parseExpression: chunk.
+	(chunkExpr isMessage and: [ chunkExpr receiver isVariable ]) ifTrue: [
+		| handler artefactType |
+
+		chunkExpr selector = #method ifTrue: [
+			^ self processMethodDefinition: false.
+		].
+
+		chunkExpr selector = #classMethod ifTrue: [
+			^ self processMethodDefinition: true
+		].
+
+		chunkExpr selector = #named:superclass:indexedInstanceVariables:instanceVariableNames:classVariableNames:sharedPools:classInstanceVariableNames: ifTrue: [
+			self assert: chunkExpr receiver name = 'Class'.
+			^ self processClassDefinition
+		].
+
+		chunkExpr selector = #key:value: ifTrue: [
+			self assert: chunkExpr receiver name = 'Annotation'.
+			^ self processAnnotation.
+		].
+
+		artefact isNil ifTrue: [
+			artefactType := chunkExpr receiver name
+		] ifFalse: [
+			self assert: chunkExpr receiver name = artefact name.
+			artefactType := artefact class name copyFrom: 4 to: artefact class name size.
+		].
+
+		handler := Symbol findInterned: ('process_' , artefactType , '_' , chunkExpr selector).
+		(handler notNil and: [ self respondsTo: handler ]) ifTrue: [
+			| args |
+			args := chunkExpr arguments collect: [ :e|e value ].
+			self perform: handler withArguments: args asArray.
+			^ true
+		].
+		self error: 'Unsupported chunk type'.
+		^ false
+	].
+	self error: 'Unsupported chunk type'.
+	^ false
 ]
 
 { #category : #processing }
@@ -108,18 +159,21 @@ UMRModuleReader >> processClassDefinition [
 
 { #category : #processing }
 UMRModuleReader >> processMethodDefinition: classMethod [
-	| source class method |
-
-	stream skipSeparators.
-	source := stream nextChunk.
+	| source sourceRef class method |
 
 	class := module ensureClassNamed: chunkExpr receiver name.
 	classMethod ifTrue: [ 
 		class := class metaclass.
 	].
 
+	self readNextChunk.
+	source := chunk.
+	sourceRef := UMRSourceInfo file: stream fileName position: chunkPos length: source size lines: stream lineEnds.
+
 	method := RGMethod named: (RBParser parseMethodPattern: source) parent: class.
 	method package: artefact.
+	method sourceCode: source.
+	method sourceInfo: sourceRef.
 
 	class addLocalMethod: method.
 
@@ -168,11 +222,20 @@ UMRModuleReader >> process_Program_importClass: exportedName from: subsystemName
 
 { #category : #processing }
 UMRModuleReader >> process_Program_named: name initializer: initializerNode [
-	| initializer |
+	| source sourceRef initializer |
 
-	initializer := UMRInitializer new sourceCode:
-					(chunk copyFrom: initializerNode body sourceInterval first
-								 to: initializerNode body sourceInterval last).
+	initializerNode body sourceInterval notEmpty ifTrue:[
+		source := (chunk copyFrom: initializerNode body sourceInterval first
+										  to: initializerNode body sourceInterval last).
+	] ifFalse: [
+		source := ''.
+	].
+	sourceRef := UMRSourceInfo file: stream fileName position: chunkPos + initializerNode body start length: source size lines: stream lineEnds.
+
+	initializer := UMRInitializer new.
+	initializer sourceCode: source.
+	initializer sourceInfo: sourceRef.
+
 
 	module := artefact := UMRProgram named: name.
 	module initializer: initializer.
@@ -180,16 +243,19 @@ UMRModuleReader >> process_Program_named: name initializer: initializerNode [
 
 { #category : #processing }
 UMRModuleReader >> process_Subsystem_named: name initializer: initializerNode [
-	| initializerSource  initializer |
+	| source sourceRef initializer |
 
 	initializerNode body sourceInterval notEmpty ifTrue:[
-		initializerSource := (chunk copyFrom: initializerNode body sourceInterval first
+		source := (chunk copyFrom: initializerNode body sourceInterval first
 										  to: initializerNode body sourceInterval last).
 	] ifFalse: [
-		initializerSource := ''.
+		source := ''.
 	].
+	sourceRef := UMRSourceInfo file: stream fileName position: chunkPos + initializerNode body start  length: source size lines: stream lineEnds.
 
-	initializer := UMRInitializer new sourceCode: initializerSource.
+	initializer := UMRInitializer new.
+	initializer sourceCode: source.
+	initializer sourceInfo: sourceRef.
 
 	module := artefact := UMRSubsystem named: name.
 	module initializer: initializer.
@@ -204,61 +270,31 @@ UMRModuleReader >> process_Subsystem_rootClusterNamed:clusterName repositoryName
 UMRModuleReader >> read [
 	artefact := nil.
 
-	[ self readNextChunk ] whileTrue.
+	[ self process1 ] whileTrue.
 
 	^ module clean
 ]
 
 { #category : #'reading-private' }
 UMRModuleReader >> readNextChunk [
-	stream atEnd ifTrue: [ ^ false ].
+	"Read next chunk from input stream and set `chunk` and `chunkPos`
+	 instvar.
 
-	stream skipSeparators.
-	chunk := stream nextChunk.
-	chunk isEmptyOrNil ifTrue: [ ^ false ].
-
-	chunkExpr := RBParser parseExpression: chunk.
-
-	(chunkExpr isMessage and: [ chunkExpr receiver isVariable ]) ifTrue: [
-		| handler artefactType |
-
-		chunkExpr selector = #method ifTrue: [ 
-			^ self processMethodDefinition: false.
-		].
-
-		chunkExpr selector = #classMethod ifTrue: [ 
-			^ self processMethodDefinition: true
-		].
-
-		chunkExpr selector = #named:superclass:indexedInstanceVariables:instanceVariableNames:classVariableNames:sharedPools:classInstanceVariableNames: ifTrue: [ 
-			self assert: chunkExpr receiver name = 'Class'.
-			^ self processClassDefinition
-		].
-
-		chunkExpr selector = #key:value: ifTrue: [ 
-			self assert: chunkExpr receiver name = 'Annotation'.
-			^ self processAnnotation.
-		].
-
-		artefact isNil ifTrue: [ 
-			artefactType := chunkExpr receiver name
-		] ifFalse: [
-			self assert: chunkExpr receiver name = artefact name.
-			artefactType := artefact class name copyFrom: 4 to: artefact class name size.
-		].
-
-		handler := Symbol findInterned: ('process_' , artefactType , '_' , chunkExpr selector).
-		(handler notNil and: [ self respondsTo: handler ]) ifTrue: [ 
-			| args |
-			args := chunkExpr arguments collect: [ :e|e value ].
-			self perform: handler withArguments: args asArray.
-			^ true
-		].
-		self error: 'Unsupported chunk type'.
+	 Return true, if chunk was read, false otherwise (in that case,
+	 `chunk` and `chunkPos` is set to `nil`.)
+	"
+	stream atEnd ifTrue: [
+		chunk := chunkPos := nil.
 		^ false
 	].
-	self error: 'Unsupported chunk type'.
-	^ false
+	stream skipSeparators.
+	chunkPos := stream position.
+	chunk := stream nextChunk.
+	chunk isEmptyOrNil ifTrue: [
+		chunk := chunkPos := nil.
+		^ false
+	].
+	^ true
 ]
 
 { #category : #accessing }
@@ -268,5 +304,5 @@ UMRModuleReader >> stream [
 
 { #category : #accessing }
 UMRModuleReader >> stream: aStream [
-	stream := aStream.
+	stream := UMRLineTrackingReadStream on: aStream.
 ]

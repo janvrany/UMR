@@ -7,6 +7,6 @@ Class {
 { #category : #writing }
 UMRBinaryCodeWriter >> writeTo: codeCache [
 	bootstrap codeObjects do: [:object | 
-		codeCache add: object code.
+		codeCache add: object.
 	].
 ]

@@ -1,8 +1,8 @@
 Class {
 	#name : #UMRCompilerDriver,
-	#superclass : #RBProgramNodeVisitor,
+	#superclass : #Object,
 	#instVars : [
-		'target',
+		'bootstrap',
 		'method',
 		'ast',
 		'ir'
@@ -14,31 +14,65 @@ Class {
 }
 
 { #category : #'instance creation' }
-UMRCompilerDriver class >> forTarget: target [
-	^ self basicNew initializeWithTarget: target
+UMRCompilerDriver class >> forBootstrap: anUMRBootstrap [
+	^ self basicNew initializeWithBootstrap: anUMRBootstrap
 ]
 
 { #category : #compiling }
 UMRCompilerDriver >> compile: anRGMethod [ 
-	| compilation translator |
+	| compilation translator object |
 
 	ast := anRGMethod parseTree.
-	ast compilationContext: (CompilationContext new).
-	ast compilationContext 
-			environment: anRGMethod methodClass environment;
-			class: anRGMethod methodClass.
+	ast source: anRGMethod sourceCode.
+	ast compilationContext: (UMRCompilationContext forBootstrap: bootstrap method: anRGMethod).
 	OCASTSemanticAnalyzer new 
 		compilationContext: ast compilationContext;
 		analyze: ast.  
 	
-	compilation := TRCompilation forTarget: target.     
+	compilation := UMRCompilation forBootstrap: bootstrap.
 	translator := UMRASTTranslator forCompilation: compilation.
 	translator visitNode: ast.
 	
 	compilation optimize.
 	compilation compile.
 	
-	^ UMRCodeObject forMethod: anRGMethod code: compilation codeBuffer  
+	object := compilation codeBuffer.
+
+	^ object
+
+
+
+
+
+	"
+	| compilation |
+
+	compilation := TRCompilation forTarget: target.
+	method := anRGMethod.
+	ast := method parseTree.
+	ir :=
+	ast acceptVisitor: self.
+	compilation optimize.
+	compilation compile.
+
+	"
+]
+
+{ #category : #compiling }
+UMRCompilerDriver >> compilePrim: primitiveBuilderClass [
+	| compilation primitiveBuilder object |
+
+	compilation := UMRCompilation forBootstrap: bootstrap.
+
+	primitiveBuilder := primitiveBuilderClass forCompilation: compilation.
+	primitiveBuilder build.
+
+	compilation optimize.
+	compilation compile.
+
+	object := compilation codeBuffer.
+
+	^ object
 	
 	
 
@@ -59,6 +93,6 @@ UMRCompilerDriver >> compile: anRGMethod [
 ]
 
 { #category : #initialization }
-UMRCompilerDriver >> initializeWithTarget: targetArg [
-	target := targetArg
+UMRCompilerDriver >> initializeWithBootstrap: anUMRBootstrap [
+	bootstrap := anUMRBootstrap
 ]

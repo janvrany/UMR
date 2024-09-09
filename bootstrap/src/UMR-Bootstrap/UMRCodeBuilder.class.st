@@ -5,6 +5,9 @@ Class {
 		'objects',
 		'environment'
 	],
+	#pools : [
+		'TRDataTypes'
+	],
 	#category : #'UMR-Bootstrap-Builders'
 }
 
@@ -18,7 +21,7 @@ UMRCodeBuilder >> compile [
 	| queue processed |
 
 	queue := OrderedCollection with: bootstrap program.
-	processed := Set new.
+	processed := OrderedCollection new.
 
 	[ queue notEmpty ] whileTrue: [ 
 		| module |
@@ -29,11 +32,21 @@ UMRCodeBuilder >> compile [
 
 		queue addAll: (module subsystems value reject: [:each | processed includes: each ])
 	].
+	self compilePrims.
+	self compileMain: processed asArray reversed
+]
+
+{ #category : #compiling }
+UMRCodeBuilder >> compileBehavior: anRGBehavior [
+	anRGBehavior methods do: [:method |
+		self compileMethod: method
+	].
 ]
 
 { #category : #compiling }
 UMRCodeBuilder >> compileClass: anRGBehavior [
-	self shouldImplement
+	self compileBehavior: anRGBehavior.
+	self compileBehavior: anRGBehavior metaclass.
 ]
 
 { #category : #compiling }
@@ -42,10 +55,44 @@ UMRCodeBuilder >> compileInitializer: anUMRInitializer [
 ]
 
 { #category : #compiling }
+UMRCodeBuilder >> compileMain: modules [
+	| compilation main |
+
+	self assert: modules last isProgram.
+	self assert: modules last initializer notNil.
+
+	compilation := UMRCompilation forBootstrap: bootstrap.
+
+	main := TRILFunctionBuilder forCompilation: compilation.
+	main defineName: 'main' type: Int32.
+	main defineParameter: 'argc' type: Int32.
+	main defineParameter: 'argv' type: Address.
+
+	modules do:[:module|
+		module initializer notNil ifTrue: [
+			| minit minitRetVal |
+
+			minit := module initializer printString.
+			main defineFunction: minit type: Address.
+			minitRetVal := main acall: { minit }.
+
+			module isProgram ifTrue: [
+				main ireturn: { main a2i: { minitRetVal } }
+			].
+		].
+	].
+
+	compilation optimize.
+	compilation compile.
+
+	objects add: compilation codeBuffer.
+]
+
+{ #category : #compiling }
 UMRCodeBuilder >> compileMethod: anRGMethod [ 
 	| compiler  object |
 
-	compiler := UMRCompilerDriver forTarget: bootstrap target.
+	compiler := UMRCompilerDriver forBootstrap: bootstrap.
 	object := compiler compile: anRGMethod.
 	objects add: object
 ]
@@ -56,6 +103,20 @@ UMRCodeBuilder >> compileModule: anUMRModule [
 	anUMRModule ask allClasses do: [:classDef | 
 		self compileClass: classDef
 	].
+]
+
+{ #category : #compiling }
+UMRCodeBuilder >> compilePrim: prim [
+	| compiler  object |
+
+	compiler := UMRCompilerDriver forBootstrap: bootstrap.
+	object := compiler compilePrim: prim.
+	objects add: object
+]
+
+{ #category : #compiling }
+UMRCodeBuilder >> compilePrims [
+	self compilePrim: UMRPrimitive_mbind.
 ]
 
 { #category : #initialization }

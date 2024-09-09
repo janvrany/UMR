@@ -27,25 +27,21 @@ UMRASTTranslator >> initialize [
 
 { #category : #initialization }
 UMRASTTranslator >> initializeWithCompilation: aTRCompilation [
-
 	compilation := aTRCompilation.
-	
-	methodBuilder := UMRIRBuilder forCompilation: compilation. 
-	
+	methodBuilder := UMRMethodBuilder forCompilation: compilation.
 	effectTranslator := self copy.
 	valueTranslator := self copy.
-	
 	effectTranslator instVarNamed: #effectTranslator put: effectTranslator.
 	effectTranslator instVarNamed: #valueTranslator put: valueTranslator.
-	
 	valueTranslator instVarNamed: #effectTranslator put: effectTranslator.
 	valueTranslator instVarNamed: #valueTranslator put: valueTranslator.
 ]
 
 { #category : #'visitor-double dispatching' }
 UMRASTTranslator >> visitMethodNode: node [
-	
-	methodBuilder defineName: node printString.
+
+	methodBuilder defineSelf.
+	methodBuilder defineName: node compilationContext method printString.
 	methodBuilder defineTemps: node scope tempVars.
 
 
@@ -65,5 +61,10 @@ UMRASTTranslator >> visitMethodNode: node [
 
 { #category : #'visitor-double dispatching' }
 UMRASTTranslator >> visitNode: node [
-	^ node acceptVisitor: self
+	| retval |
+
+	methodBuilder pushNode: node.
+	retval := node acceptVisitor: self.
+	methodBuilder popNode.
+	^ retval
 ]
