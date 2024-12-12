@@ -39,7 +39,6 @@ UMRASTTranslator >> initializeWithCompilation: aTRCompilation [
 
 { #category : #'visitor-double dispatching' }
 UMRASTTranslator >> visitMethodNode: node [
-
 	methodBuilder defineSelf.
 	methodBuilder defineName: node compilationContext method printString.
 	methodBuilder defineTemps: node scope tempVars.
@@ -51,7 +50,13 @@ UMRASTTranslator >> visitMethodNode: node [
 			withVars: (node scope tempVector collect: [:each| each name]) asArray.
 	].
 
-	node pragmas do: [:each | self visitNode: each].
+	node pragmas do: [:pragma |
+		self visitNode: pragma.
+		pragma isPrimitive ifTrue: [
+			"BOGUS: no support for primitive failure!"
+			^ self
+		].
+	].
 	self forEffect visitNode: node body.
 
 	node body lastIsReturn ifFalse: [
@@ -67,4 +72,12 @@ UMRASTTranslator >> visitNode: node [
 	retval := node acceptVisitor: self.
 	methodBuilder popNode.
 	^ retval
+]
+
+{ #category : #'visitor-double dispatching' }
+UMRASTTranslator >> visitPragmaNode: aPragmaNode [
+	aPragmaNode isPrimitive ifTrue: [
+		self assert: aPragmaNode isPrimitiveError not description: 'prim errors not supported'.
+		methodBuilder prim: (aPragmaNode argumentAt: #primitive:) value.
+	].
 ]

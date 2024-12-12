@@ -25,41 +25,32 @@ UMRBoostrapTests >> tearDown [
 
 { #category : #tests }
 UMRBoostrapTests >> test01_meaningOfWorld [
-	| program bootstrap exit |
+	| program bootstrap |
 
 	program := UMRModuleReader readFrom:('Program named:''', testSelector , ''' initializer:[ 42 ] !') readStream.
 	bootstrap := UMRBootstrap forProgram: program target: target.
+	shell setBootstrap: bootstrap.
+
 
 	bootstrap bootstrap.
 	bootstrap writeCodeTo: shell nzone.
 	bootstrap writeHeapTo: shell nzone.
 
-	shell entry: (shell nzone exports at: (TRFunctionSymbol name: 'main' type: (TRDataType named: 'Int32') linkage:nil)).
-	"
-	shell debugger cli
-	"
-	exit := shell debugger send: 'c' andWaitFor: GDBThreadGroupExitedEvent , GDBStoppedEvent.
 
-	self assert: exit exitCode equals: (42 << 1) | 1
+	self assert: shell run equals: (42 << 1) | 1
 ]
 
 { #category : #tests }
 UMRBoostrapTests >> test02_simple [
-	| program bootstrap exit |
+	| program bootstrap |
 
 	program := UMRModuleLoader new loadProgram: 'SimpleProgram'.
 	bootstrap := UMRBootstrap forProgram: program target: target.
+	shell setBootstrap: bootstrap.
 
 	bootstrap bootstrap.
 	bootstrap writeCodeTo: shell nzone.
 	bootstrap writeHeapTo: shell heap1.
 
-	shell entry: (shell nzone exports at: (TRFunctionSymbol name: 'main' type: (TRDataType named: 'Int32') linkage:nil)).
-	"
-	shell debugger cli
-	"
-	exit := shell debugger send: 'c' andWaitFor: GDBThreadGroupExitedEvent, GDBStoppedEvent.
-
-	self assert: exit class equals: GDBThreadGroupExitedEvent.
-	self assert: exit exitCode equals: (42 << 1) | 1
+	self assert: shell run equals: (0 << 1) | 1
 ]

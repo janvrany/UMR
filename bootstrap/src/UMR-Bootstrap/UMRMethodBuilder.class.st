@@ -24,13 +24,6 @@ UMRMethodBuilder class >> new [
 	self shouldNotImplement. "Use #forCompilation:"
 ]
 
-{ #category : #primitives }
-UMRMethodBuilder >> addPragma: pragma [
-	(pragma key == #primitive:) ifTrue: [
-		"Do nothing for now"
-	].
-]
-
 { #category : #symbols }
 UMRMethodBuilder >> defineName: name [
 	entry defineName: name type: Address
@@ -77,6 +70,18 @@ UMRMethodBuilder >> popNode [
 { #category : #instructions }
 UMRMethodBuilder >> popTop [
 	current pop
+]
+
+{ #category : #instructions }
+UMRMethodBuilder >> prim: primName [
+	| prim retval |
+
+	self assert: current == entry description: 'Attempting to call prim in the middle of a method'.
+
+	prim := compilation primitiveNamed: primName.
+	retval := prim callUsing: current.
+	"BOGUS: no support for primitive failure here!"
+	current areturn: { retval }.
 ]
 
 { #category : #instructions }
@@ -128,6 +133,11 @@ UMRMethodBuilder >> pushReceiver [
 ]
 
 { #category : #instructions }
+UMRMethodBuilder >> pushTemp: aString [
+	current push: (current aload: aString)
+]
+
+{ #category : #instructions }
 UMRMethodBuilder >> returnTop [
 	current areturn: { current pop }
 ]
@@ -149,4 +159,12 @@ UMRMethodBuilder >> send: selector [
 	retvalOOP := current acalli: { codePtr . receiverOOP } , argumentOOPs , { 'meval' }.
 
 	current push: retvalOOP.
+]
+
+{ #category : #instructions }
+UMRMethodBuilder >> storeTemp: aString [
+	current astore: {
+		current top.
+		"-->" aString
+	}
 ]

@@ -19,7 +19,7 @@ UMRCompilerDriver class >> forBootstrap: anUMRBootstrap [
 ]
 
 { #category : #compiling }
-UMRCompilerDriver >> compile: anRGMethod [ 
+UMRCompilerDriver >> compileMethod: anRGMethod [
 	| compilation translator object |
 
 	ast := anRGMethod parseTree.
@@ -59,13 +59,13 @@ UMRCompilerDriver >> compile: anRGMethod [
 ]
 
 { #category : #compiling }
-UMRCompilerDriver >> compilePrim: primitiveBuilderClass [
-	| compilation primitiveBuilder object |
+UMRCompilerDriver >> compilePrim: primitive [
+	| compilation builder object |
 
 	compilation := UMRCompilation forBootstrap: bootstrap.
 
-	primitiveBuilder := primitiveBuilderClass forCompilation: compilation.
-	primitiveBuilder build.
+	builder := UMRPrimitiveBuilder forCompilation: compilation.
+	primitive compileUsing: builder.
 
 	compilation optimize.
 	compilation compile.
@@ -73,23 +73,6 @@ UMRCompilerDriver >> compilePrim: primitiveBuilderClass [
 	object := compilation codeBuffer.
 
 	^ object
-	
-	
-
-
-
-	"
-	| compilation |
-
-	compilation := TRCompilation forTarget: target.
-	method := anRGMethod.
-	ast := method parseTree.
-	ir := 
-	ast acceptVisitor: self.
-	compilation optimize.
-	compilation compile.
-	
-	"
 ]
 
 { #category : #initialization }

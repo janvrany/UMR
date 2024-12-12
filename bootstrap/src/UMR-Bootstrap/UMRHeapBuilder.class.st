@@ -199,6 +199,7 @@ UMRHeapBuilder >> makeBehavior: behaviorDef [
 	behaviorObj := self makeInstanceOf: behaviorDef metaclass.
 	behaviorObj label: 'cls_' , behaviorDef name.
 	behaviorObj namedSlot: #instanceMD put: mdObj.
+	behaviorObj namedSlot: #instVarCount put: (self makeInteger: behaviorDef instSize).
 
 	bootstrap objectManager defineClass: behaviorDef obj: behaviorObj.
 

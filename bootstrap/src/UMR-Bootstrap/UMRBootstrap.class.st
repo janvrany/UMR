@@ -8,7 +8,8 @@ Class {
 		'codeBuilder',
 		'heapBuilder',
 		'objectManager',
-		'objectFormat'
+		'objectFormat',
+		'primitives'
 	],
 	#category : #'UMR-Bootstrap'
 }
@@ -96,6 +97,11 @@ UMRBootstrap >> initializeWithProgram: programArg target: targetArg [
 	environment setProgram: program.
 	objectManager := UMRObjectManager new.
 	objectFormat := UMRObjectFormat1 forTarget: target.
+	primitives := {
+		UMRPrimitive_mbind new.
+		UMRPrimitive_primNewObject new.
+		UMRPrimitive_primSaySomething new.
+	}
 ]
 
 { #category : #accessing }
@@ -106,6 +112,27 @@ UMRBootstrap >> objectFormat [
 { #category : #accessing }
 UMRBootstrap >> objectManager [
 	^ objectManager
+]
+
+{ #category : #accessing }
+UMRBootstrap >> primitiveIndex: aString [
+	primitives withIndexDo:[:prim :primIndex |
+		prim name = aString ifTrue: [ ^ primIndex ]
+	].
+	self error: 'No such primitive: ', aString.
+	^ nil.
+]
+
+{ #category : #accessing }
+UMRBootstrap >> primitiveNamed: aString [
+	^ primitives
+		detect: [:primitive | primitive name = aString ]
+		ifNone: [ self error: 'No such primitive: ', aString. nil].
+]
+
+{ #category : #accessing }
+UMRBootstrap >> primitives [
+	^ primitives
 ]
 
 { #category : #accessing }

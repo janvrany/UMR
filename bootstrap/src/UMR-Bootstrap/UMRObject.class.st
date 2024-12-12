@@ -160,11 +160,7 @@ UMRObject >> namedSlotAt: i put: v [
 UMRObject >> oop [
 	self assert:(oop notNil or: [classDef isImmediateClass]).
 
-	oop isNil ifTrue: [
-		"BOGUS!"
-		^ value << 1 | 1
-	].
-	^ oop
+	^ oop ? value
 ]
 
 { #category : #printing }

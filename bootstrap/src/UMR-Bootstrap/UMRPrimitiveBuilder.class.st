@@ -17,11 +17,9 @@ UMRPrimitiveBuilder >> build [
 UMRPrimitiveBuilder >> build: opcode arguments: arguments [
 	| buildMethod buildContext sourceInfo |
 
-	buildMethod := self class >> #build.
-	buildContext := thisContext.
-	[ buildContext notNil and:[buildContext method ~~ buildMethod ]] whileTrue: [
-		buildContext := buildContext sender.
-	].
+	buildContext := thisContext sender sender.
+	buildMethod := buildContext method.
+
 	buildContext notNil ifTrue: [
 		"Cache last used source info."
 		LastMethod ~~ buildMethod ifTrue: [
@@ -29,8 +27,10 @@ UMRPrimitiveBuilder >> build: opcode arguments: arguments [
 			LastMethodSourceInfo := LastMethod sourceInfo
 		].
 		sourceInfo := LastMethodSourceInfo.
-
-		self location: (sourceInfo sourceLocationForContext: buildContext).
+		"Source info may be nil if method is currently in the image only"
+		sourceInfo notNil ifTrue: [
+			self location: (sourceInfo sourceLocationForContext: buildContext).
+		].
 	] ifFalse: [
 		self location: nil.
 	].

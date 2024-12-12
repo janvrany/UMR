@@ -1,6 +1,12 @@
 Program
 	named: 'SimpleProgram'
-	initializer: [SimpleObject new saySomething. 0] !
+	initializer: [
+		| o |
+
+		o := SimpleObject new.
+		o saySomething.
+		0 "exit code".
+	] !
 
 SimpleProgram
 	addSubsystemNamed: 'SimpleSubsystem' repositoryName: 'SimpleProgram' !

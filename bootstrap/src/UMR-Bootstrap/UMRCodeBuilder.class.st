@@ -93,7 +93,7 @@ UMRCodeBuilder >> compileMethod: anRGMethod [
 	| compiler  object |
 
 	compiler := UMRCompilerDriver forBootstrap: bootstrap.
-	object := compiler compile: anRGMethod.
+	object := compiler compileMethod: anRGMethod.
 	objects add: object
 ]
 
@@ -116,7 +116,9 @@ UMRCodeBuilder >> compilePrim: prim [
 
 { #category : #compiling }
 UMRCodeBuilder >> compilePrims [
-	self compilePrim: UMRPrimitive_mbind.
+	bootstrap primitives do: [:each |
+		self compilePrim: each.
+	].
 ]
 
 { #category : #initialization }

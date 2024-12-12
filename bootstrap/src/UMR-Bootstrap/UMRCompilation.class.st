@@ -52,3 +52,13 @@ UMRCompilation >> objectFormat [
 UMRCompilation >> objectManager [
 	^ bootstrap objectManager
 ]
+
+{ #category : #accessing }
+UMRCompilation >> primitiveIndex: aString [
+	^ bootstrap primitiveIndex: aString
+]
+
+{ #category : #accessing }
+UMRCompilation >> primitiveNamed: aString [
+	^ bootstrap primitiveNamed: aString
+]

@@ -9,12 +9,12 @@ UMRCodeCache >> add: codeObj [
 	super add: codeObj.
 
 	(memory isKindOf: GDBThreadGroupMemory) ifTrue: [
-		| func addr file lineTable cmd |
+		| func addr fileTable lineTable cmd |
 
 		func := codeObj exports keys detect: [:sym | sym isTRFunctionSymbol ] ifNone: [ ^ self ].
 		addr := symbols at: func.
-		file := '<unknown>'.
 		lineTable := OrderedCollection new.
+		fileTable := OrderedCollection new.
 
 		codeObj instructions do: [:insn |
 			| insnPC insnNode |
@@ -23,8 +23,15 @@ UMRCodeCache >> add: codeObj [
 			insn isPseudoInstruction ifFalse: [
 				insnNode := insn node.
 				(insnNode notNil and: [ insnNode location notNil ]) ifTrue: [
-					file := insnNode location file.
-					lineTable add: { insnNode location line . insnPC . insnNode opcode isTreeTop }.
+					| fileNo |
+
+					"Files are indexed from zero!"
+					fileNo := (fileTable indexOf: insnNode location file) - 1.
+					fileNo == -1 ifTrue: [
+						fileTable add: insnNode location file.
+						fileNo := fileTable size - 1.
+					].
+					lineTable add: { insnPC.  fileNo. insnNode location line . insn isPartOfPrologue }.
 				]
 			].
 
@@ -37,20 +44,16 @@ UMRCodeCache >> add: codeObj [
 			(symbols at: func) pythonOn: s.
 			s nextPutAll: ', '.
 			codeObj size pythonOn: s.
-			s nextPutAll: ', '.
-			file pythonOn: s.
-			s nextPutAll: ', '.
-			lineTable pythonOn: s.
+			s nextPutAll: ','.
+			(fileTable "copyTo: 1") pythonOn: s.
+			s nextPutAll: ','.
+			(lineTable "copyTo: 1") pythonOn: s.
 			s nextPutAll: ')'
 		].
 		"
 		memory debugger cli
 		"
-		"
-		Disabled for now, need special GDB
-		"
-		"
 		memory debugger send: cmd.
-		"
+
 	].
 ]

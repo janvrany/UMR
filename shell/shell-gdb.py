@@ -11,22 +11,101 @@ def cache(user_function):
     """
     return lru_cache(maxsize=None, typed=False)(user_function)
 
+class SymtabBuilder:
+    def __init__(self, compunit, filename):
+        self.compunit = compunit
+        self.filename = filename
+        self.linetable = []
 
-def add_code_object(name, addr, size, file = "<unknown>", linetable = []):
+    def build(self):
+        """
+        Build the symbol table. Returns gdb.Symtab
+        """
+        self.symtab = gdb.Symtab(self.filename, self.compunit)
+
+        #
+        # Build line table if needed
+        #
+        if len(self.linetable) > 0:
+            self.linetable.sort(key = lambda e : e[1])
+
+            # Collect addresses to properly mark line starts,
+            # prologues and epilogues.
+            line_start_addrs = {}
+            prologue_end_addr = -1
+            for pc, line, prologue in self.linetable:
+                line_start_addrs.setdefault(line, pc)
+                if prologue:
+                    prologue_end_addr = max(prologue_end_addr, pc)
+
+            # Create 'real' gdb.LinetableEntry objects based on
+            # entries and collected information
+            entries = []
+            for pc, line, _, in self.linetable:
+                is_stmt = pc == line_start_addrs[line]
+                prologue_end = pc == prologue_end_addr
+                entry = gdb.LineTableEntry(line, pc, is_stmt, prologue_end)
+                entries.append(entry)
+
+            # And finally, create gdb.Linetable:
+            gdb.LineTable(self.symtab, entries)
+
+        return self.symtab
+
+
+
+def add_code_object(name, addr, size, filetable = [], linetable = []):
+    #
+    # First, check if this GDB has all required patches, if not
+    # do nothing.
+    #
+    if not hasattr(gdb, "Compunit"):
+        return
+    #
+    # Create objfile if needed.
+    #
     objfile = gdb.current_progspace().objfile_for_address(addr)
     if objfile is None:
         objfile = gdb.Objfile("nzone@{hex(addr)}")
+    #
+    # Create compunit for this code object.
+    #
+    compunit = gdb.Compunit(name, objfile, addr, addr+size, 3)
 
-    symtab = gdb.Symtab(objfile, file)
-    symtab.add_block(name, addr, addr + size)
-    symtab.set_linetable([gdb.LineTableEntry(*e) for e in linetable])
+    #
+    # Build symbol tables.
+    #
+    if len(filetable) == 0:
+        filetable = ['<unknown source>']
 
+    symtabs = [ SymtabBuilder(compunit, file) for file in filetable]
+    for pc, fileNo, line, prologue in linetable:
+        #
+        # Each entry is a tuple of (pc, fileNo, line, prologue?)
+        #
+        assert addr <= pc and pc <= addr + size, "linetable entry out of range"
+        symtabs[fileNo].linetable.append((pc, line, prologue))
+
+    symtabs = [ stb.build() for stb in symtabs]
+    symtab = symtabs[0]
+    #
+    # Finally, create the block and symbol for the function/method
+    #
+    fblk = gdb.Block(compunit.static_block(), addr, addr + size)
+    ftyp = gdb.selected_inferior().architecture().void_type().function(varargs=True)
+    fsym = gdb.Symbol(name, symtab, ftyp,
+                     gdb.SYMBOL_FUNCTION_DOMAIN, gdb.SYMBOL_LOC_BLOCK,
+                     fblk)
+    compunit.static_block().add_symbol(fsym)
+    #
+    # Done!
+    #
 
 # Define some type and constants from debug info. Hopefully in a future,
 # this debug info would be somehow generated from Smalltalk code...
 class Types:
     char = gdb.selected_inferior().architecture().integer_type(8, False)
-    void = gdb.selected_inferior().architecture().integer_type(0, False)
+    void = gdb.selected_inferior().architecture().void_type()
     uintptr_t = gdb.selected_inferior().architecture().integer_type(void.pointer().sizeof * 8, False)
     intptr_t = gdb.selected_inferior().architecture().integer_type(void.pointer().sizeof * 8, True)
 
