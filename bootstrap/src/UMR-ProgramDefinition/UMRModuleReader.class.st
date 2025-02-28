@@ -64,8 +64,6 @@ UMRModuleReader >> process1 [
 
 	chunkExpr := RBParser parseExpression: chunk.
 	(chunkExpr isMessage and: [ chunkExpr receiver isVariable ]) ifTrue: [
-		| handler artefactType |
-
 		chunkExpr selector = #method ifTrue: [
 			^ self processMethodDefinition: false.
 		].
@@ -83,6 +81,10 @@ UMRModuleReader >> process1 [
 			self assert: chunkExpr receiver name = 'Annotation'.
 			^ self processAnnotation.
 		].
+	].
+
+	((chunkExpr isMessage or: [ chunkExpr isCascade ]) and: [ chunkExpr receiver isVariable ]) ifTrue: [
+		| artefactType messages |
 
 		artefact isNil ifTrue: [
 			artefactType := chunkExpr receiver name
@@ -91,15 +93,26 @@ UMRModuleReader >> process1 [
 			artefactType := artefact class name copyFrom: 4 to: artefact class name size.
 		].
 
-		handler := Symbol findInterned: ('process_' , artefactType , '_' , chunkExpr selector).
-		(handler notNil and: [ self respondsTo: handler ]) ifTrue: [
-			| args |
-			args := chunkExpr arguments collect: [ :e|e value ].
-			self perform: handler withArguments: args asArray.
-			^ true
+		chunkExpr isMessage ifTrue: [
+			messages := Array with: chunkExpr.
+		] ifFalse: [
+			messages := chunkExpr messages.
 		].
-		self error: 'Unsupported chunk type'.
-		^ false
+
+		messages do: [:expr |
+			| handler |
+
+			handler := Symbol findInterned: ('process_' , artefactType , '_' , expr selector).
+			(handler notNil and: [ self respondsTo: handler ]) ifTrue: [
+				| args |
+				args := expr arguments collect: [ :e|e value ].
+				self perform: handler withArguments: args asArray.
+			] ifFalse: [
+				self error: 'Unsupported chunk content'.
+				^ false
+			].
+		].
+		^ true
 	].
 	self error: 'Unsupported chunk type'.
 	^ false
