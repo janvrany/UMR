@@ -8,6 +8,11 @@ Class {
 	#category : #'UMR-Bootstrap-Tests'
 }
 
+{ #category : #accessing }
+UMRBoostrapTests >> defaultTimeLimit [
+	^ 5 minutes
+]
+
 { #category : #running }
 UMRBoostrapTests >> setUp [
 	target := TRRV64GLinux default.
@@ -53,4 +58,9 @@ UMRBoostrapTests >> test02_simple [
 	bootstrap writeHeapTo: shell heap1.
 
 	self assert: shell run equals: (0 << 1) | 1
+]
+
+{ #category : #accessing }
+UMRBoostrapTests >> timeout [
+	^ self defaultTimeLimit asSeconds
 ]
