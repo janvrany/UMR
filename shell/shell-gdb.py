@@ -1,7 +1,9 @@
 import gdb
-import vdb
 
-from vdb.cli import pr, do, im
+try:
+    from vdb.cli import pr, do, im
+except ImportError:
+    pass
 
 from functools import lru_cache
 
