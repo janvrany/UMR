@@ -8,7 +8,6 @@ Class {
 ManifestLightOpal class >> includedInPreRequisites [
 	^ #(
 		#'LightOpal-Semantics'    
-		#'LightOpal-Semantics-Tests'    
 		#'LightOpal-Translator'    
 	)
 ]

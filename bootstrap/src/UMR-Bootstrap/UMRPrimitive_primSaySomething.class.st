@@ -10,7 +10,6 @@ Class {
 { #category : #'shell interface' }
 UMRPrimitive_primSaySomething >> evalUsing: shell parameters: params [
 	Transcript show: 'Hello UMR!'.
-	self halt. "It works!"
 	^ 0
 ]
 

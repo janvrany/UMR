@@ -18,14 +18,9 @@ $(eval $(call git-clone-local,MACHINEARITHMETIC_DIR,$(MACHINEARITHMETIC_URL),$(M
 endif
 
 ifndef ARCHC_DIR
-ARCHC_DIR    := ../3rdparty/ArchC
-#ARCHC_URL    ?= https://github.com/shingarov/Pharo-ArchC
-#ARCHC_BRANCH ?= pure-z3
-#
-# temporarily use custom branch
-#
-ARCHC_URL    ?= https://github.com/janvrany/Pharo-ArchC
-ARCHC_BRANCH ?= jv/devel
+ARCHC_DIR    := ../../3rdparty/ArchC
+ARCHC_URL    ?= https://github.com/shingarov/Pharo-ArchC
+ARCHC_BRANCH ?= pure-z3
 $(eval $(call git-clone-local,ARCHC_DIR,$(ARCHC_URL),$(ARCHC_BRANCH)))
 endif
 

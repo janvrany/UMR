@@ -1,7 +1,9 @@
 import gdb
-import vdb
 
-from vdb.cli import pr, do, im
+try:
+    from vdb.cli import pr, do, im
+except ImportError:
+    pass
 
 from functools import lru_cache
 
@@ -105,7 +107,7 @@ def add_code_object(name, addr, size, filetable = [], linetable = []):
 # this debug info would be somehow generated from Smalltalk code...
 class Types:
     char = gdb.selected_inferior().architecture().integer_type(8, False)
-    void = gdb.selected_inferior().architecture().void_type()
+    void = gdb.selected_inferior().architecture().integer_type(0, False)
     uintptr_t = gdb.selected_inferior().architecture().integer_type(void.pointer().sizeof * 8, False)
     intptr_t = gdb.selected_inferior().architecture().integer_type(void.pointer().sizeof * 8, True)
 
@@ -113,6 +115,9 @@ class Types:
     oop = obj.pointer()
 
 assert Types.uintptr_t.sizeof == 8
+
+if hasattr(gdb.selected_inferior().architecture(), "void_type"):
+    void = gdb.selected_inferior().architecture().void_type()
 
 def _as_gdb_value(valueish, typ):
     if isinstance(valueish, gdb.Value):
